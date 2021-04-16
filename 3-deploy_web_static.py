@@ -5,9 +5,8 @@ from fabric.api import local, put, run, env
 from os import path
 from datetime import datetime
 
-env.hosts = ["{}@35.231.233.84".format(env.user),
-             "{}@34.207.112.220".format(env.user)]
-
+env.hosts = ["{}@35.196.187.53".format(env.user),
+             "{}@34.75.244.141".format(env.user)]
 
 def do_pack():
     '''Packing web_static to versions/web_static_20170314233357.tgz'''

@@ -1,30 +1,57 @@
 #!/usr/bin/python3
-"""
-Fabric script based on the file 1-pack_web_static.py that distributes an
-archive to the web servers
-"""
-
-from fabric.api import put, run, env
-from os.path import exists
+'''generates a .tgz archive from the contents of the web_static\
+folder of your AirBnB Clone repo, using the function do_pack'''
+from fabric.api import local, put, run, env
+from os import path
+from datetime import datetime
 env.hosts = ['142.44.167.228', '144.217.246.195']
 
 
+def do_pack():
+    '''Packing web_static to versions/web_static_20170314233357.tgz'''
+    if not path.exists("versions"):
+        local("mkdir versions")
+    local("tar -czf versions/web_static_{}.tgz web_static".
+          format(str(datetime.now()).split(".")[0].replace("-", "").
+                 replace(" ", "").replace(":", "")))
+
+
 def do_deploy(archive_path):
-    """distributes an archive to the web servers"""
-    if exists(archive_path) is False:
-        return False
+    '''distributes an archive to your web servers'''
+    if not path.exists(archive_path):
+        return(False)
+
     try:
-        file_n = archive_path.split("/")[-1]
-        no_ext = file_n.split(".")[0]
-        path = "/data/web_static/releases/"
-        put(archive_path, '/tmp/')
-        run('mkdir -p {}{}/'.format(path, no_ext))
-        run('tar -xzf /tmp/{} -C {}{}/'.format(file_n, path, no_ext))
-        run('rm /tmp/{}'.format(file_n))
-        run('mv {0}{1}/web_static/* {0}{1}/'.format(path, no_ext))
-        run('rm -rf {}{}/web_static'.format(path, no_ext))
-        run('rm -rf /data/web_static/current')
-        run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
-        return True
+        # upload tgz file to servers
+        put(archive_path, "/tmp/")
+
+        # variables to be used
+        tgzname = archive_path.split("/")[-1]
+        webpath = "/data/web_static/releases/{}/".format(tgzname[:-4])
+        tmpath = "/tmp/{}".format(tgzname)
+        sympath = "/data/web_static/current"
+
+        # create folder to tgz file
+        run("mkdir -p {}".format(webpath))
+
+        # uncompressed tgz file
+        run("tar -xzf {} -C {}".format(tmpath, webpath))
+
+        # remove tgz
+        run("rm {}".format(tmpath))
+
+        # move all uncompressed files
+        run("mv {}web_static/* {}".format(webpath, webpath))
+
+        # remove web_static folder
+        run("rm -rf {}/web_static".format(webpath))
+
+        # remove the symbolic link
+        run("rm -rf {}".format(sympath))
+
+        # create new symbolic link
+        run("ln -s {} {}".format(webpath, sympath))
+        return(True)
+
     except:
-        return False
+        return(False)

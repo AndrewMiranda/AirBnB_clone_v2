@@ -8,16 +8,15 @@ from datetime import datetime
 env.hosts = ["{}@35.231.233.84".format(env.user),
              "{}@34.207.112.220".format(env.user)]
 
-env.tgz = ""
+
 
 def do_pack():
-    """ Create directory if doesn't exist and backup folder web_static """
-    time = str(datetime.now()).split(".")[0].replace(
-        ":", "").replace(" ", "").replace("-", "")
+    '''Packing web_static to versions/web_static_20170314233357.tgz'''
     if not path.exists("versions"):
-        local("mkdir -p versions")
-    local("tar -czf versions/web_static_{}.tgz web_static".format(time))
-    env.tgz = ("versions/web_static_{}.tgz".format(time))
+        local("mkdir versions")
+    local("tar -czf versions/web_static_{}.tgz web_static".
+          format(str(datetime.now()).split(".")[0].replace("-", "").
+                 replace(" ", "").replace(":", "")))
 
 
 def do_deploy(archive_path):
@@ -60,9 +59,3 @@ def do_deploy(archive_path):
     except:
         return(False)
 
-
-def deploy():
-    '''creates and distributes an archive to your web servers'''
-    if env.tgz == "":
-        do_pack()
-    return(do_deploy(env.tgz))

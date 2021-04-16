@@ -1,61 +1,57 @@
 #!/usr/bin/python3
-'''generates a .tgz archive from the contents of the web_static\
-folder of your AirBnB Clone repo, using the function do_pack'''
-from fabric.api import local, put, run, env
-from os import path
+"""
+Fabric script that distributes an archive to web servers
+"""
+from fabric.operations import put, run, sudo
+import os
+from fabric.api import run, local, sudo, env
 from datetime import datetime
 
-env.hosts = ["{}@35.231.233.84".format(env.user),
-             "{}@34.207.112.220".format(env.user)]
 
+dt = datetime.now()
+
+env.hosts = ['34.74.35.201', '35.196.181.73']
 
 
 def do_pack():
-    '''Packing web_static to versions/web_static_20170314233357.tgz'''
-    if not path.exists("versions"):
-        local("mkdir versions")
-    local("tar -czf versions/web_static_{}.tgz web_static".
-          format(str(datetime.now()).split(".")[0].replace("-", "").
-                 replace(" ", "").replace(":", "")))
+    """ Packs web_static files into .tgz file
+    """
+    file_name = 'versions/web_static_{}{}{}{}{}{}.tgz'.format(
+        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+    local('mkdir -p versions')
+    command = local("tar -cvzf " + file_name + " ./web_static/")
+    if command == 0:
+        return file_name
+    return None
 
 
 def do_deploy(archive_path):
-    '''distributes an archive to your web servers'''
-    if not path.exists(archive_path):
-        return(False)
-
+    """ deploy an archive from the archive_path
+    """
+    if os.path.exists(archive_path) is False:
+        return False
+    file_name = os.path.splitext(os.path.split(archive_path)[1])[0]
+    target = '/data/web_static/releases/' + file_name
+    path = archive_path.split('/')[1]
     try:
-        # upload tgz file to servers
+        """put("{}/tmp/".format(archive_path))
+        run('sudo mkdir -p {}'.format(target))
+        run('sudo tar -xzf /tmp/{} -C {}/'.format(path, target))
+        run('sudo rm /tmp/{}'.format(path))
+        run('sudo mv {}/web_static/* {}/'.format(target, target))
+        run('sudo rm -rf {}/web_static'.format(target))
+        run('sudo rm -rf /data/web_static/current')
+        run('sudo ln -s {}/ /data/web_static/current'.format(target))"""
+
         put(archive_path, "/tmp/")
-
-        # variables to be used
-        tgzname = archive_path.split("/")[-1]
-        webpath = "/data/web_static/releases/{}/".format(tgzname[:-4])
-        tmpath = "/tmp/{}".format(tgzname)
-        sympath = "/data/web_static/current"
-
-        # create folder to tgz file
-        run("mkdir -p {}".format(webpath))
-
-        # uncompressed tgz file
-        run("tar -xzf {} -C {}".format(tmpath, webpath))
-
-        # remove tgz
-        run("rm {}".format(tmpath))
-
-        # move all uncompressed files
-        run("mv {}web_static/* {}".format(webpath, webpath))
-
-        # remove web_static folder
-        run("rm -rf {}/web_static".format(webpath))
-
-        # remove the symbolic link
-        run("rm -rf {}".format(sympath))
-
-        # create new symbolic link
-        run("ln -s {} {}".format(webpath, sympath))
-        return(True)
-
+        run('sudo mkdir -p ' + target)
+        run('sudo tar -xzf /tmp/' + path + ' -C ' + target + '/')
+        run('sudo rm /tmp/' + path)
+        run('sudo mv ' + target + '/web_static/* ' + target + '/')
+        run('sudo rm -rf ' + target + '/web_static')
+        run('sudo rm -rf /data/web_static/current')
+        run('sudo ln -s ' + target + '/ /data/web_static/current')
+        print("New version deployed!")
+        return True
     except:
-        return(False)
-
+        return False
